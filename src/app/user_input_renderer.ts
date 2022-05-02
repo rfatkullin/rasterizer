@@ -1,4 +1,4 @@
-import { IRenderer } from "./contracts/IRenderer";
+import { IRenderer } from "./contracts/irenderer";
 import { Point2f } from "./model/geometry/point2f";
 import { Point3f } from "./model/geometry/point3f";
 import { Color } from "./model/materials/color";

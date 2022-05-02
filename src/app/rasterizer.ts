@@ -14,7 +14,7 @@ export class Rasterizer {
             this._filters = [];
         }
 
-        this._pixelData = this._context.getImageData(0, 0, this._canvasSettings.Width, this._canvasSettings.Height);
+        this._pixelData = this._context.getImageData(0, 0, this._canvasSettings.width, this._canvasSettings.height);
 
         this.clear();
     }
@@ -46,7 +46,7 @@ export class Rasterizer {
 
         this._depthBuffer.set(bufferIndex, depth);
 
-        let off = (y * this._canvasSettings.Width + x) * 4;
+        let off = (y * this._canvasSettings.width + x) * 4;
 
         const data = this._pixelData.data;
 
@@ -275,10 +275,10 @@ export class Rasterizer {
     private fillBackground(): void {
         const data = this._pixelData.data;
 
-        for (let x = 0; x < this._canvasSettings.Width; ++x) {
-            for (let y = 0; y < this._canvasSettings.Height; ++y) {
+        for (let x = 0; x < this._canvasSettings.width; ++x) {
+            for (let y = 0; y < this._canvasSettings.height; ++y) {
 
-                let off = (y * this._canvasSettings.Width + x) * 4;
+                let off = (y * this._canvasSettings.width + x) * 4;
 
                 data[off] = 255;
                 data[off + 1] = 255;

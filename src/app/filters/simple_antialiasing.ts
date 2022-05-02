@@ -16,14 +16,14 @@ export class SimpleAntialiasing implements IFilter {
 
             let neighborIndices: number[] = [
                 currentPixelIndex,
-                currentPixelIndex - componentsNumber * this._canvasSettings.Width,
-                currentPixelIndex - componentsNumber * this._canvasSettings.Width - componentsNumber,
-                currentPixelIndex - componentsNumber * this._canvasSettings.Width + componentsNumber,
+                currentPixelIndex - componentsNumber * this._canvasSettings.width,
+                currentPixelIndex - componentsNumber * this._canvasSettings.width - componentsNumber,
+                currentPixelIndex - componentsNumber * this._canvasSettings.width + componentsNumber,
                 currentPixelIndex - componentsNumber,
                 currentPixelIndex + componentsNumber,
-                currentPixelIndex + componentsNumber * this._canvasSettings.Width,
-                currentPixelIndex + componentsNumber * this._canvasSettings.Width - componentsNumber,
-                currentPixelIndex + componentsNumber * this._canvasSettings.Width + componentsNumber
+                currentPixelIndex + componentsNumber * this._canvasSettings.width,
+                currentPixelIndex + componentsNumber * this._canvasSettings.width - componentsNumber,
+                currentPixelIndex + componentsNumber * this._canvasSettings.width + componentsNumber
             ];
 
             neighborIndices = neighborIndices.filter(index => index >= 0 && index < pixelsCopy.length);

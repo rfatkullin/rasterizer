@@ -1,7 +1,8 @@
+import { Clipper } from "./clipping/clipper";
 import { CanvasSettings } from "./configuration/canvas_settings";
-import { IRenderer } from "./contracts/IRenderer";
-import { Demos } from "./data/demo_scenes";
+import { IRenderer } from "./contracts/irenderer";
 import { VectorMath } from "./math/vector_math";
+import { ClippingResult } from "./model/clipping_result";
 import { Point3f } from "./model/geometry/point3f";
 import { Color } from "./model/materials/color";
 import { FigureDescription } from "./model/scene/figure_description";
@@ -14,24 +15,32 @@ import { ColorUtils } from "./utils/color_utils";
 
 export class SceneRenderer implements IRenderer {
 
-    public constructor(private _rasterizer: Rasterizer, private _canvasSettings: CanvasSettings) {
+    public constructor(
+        private readonly _scene: SceneDescription,
+        private readonly _clipper: Clipper,
+        private readonly _rasterizer: Rasterizer,
+        private readonly _canvasSettings: CanvasSettings) {
     }
 
     public start(): void {
-        this.drawSceneFigures(Demos.Scene1);
+        this.drawSceneFigures();
     }
 
-    public drawSceneFigures(scene: SceneDescription): void {
+    public drawSceneFigures(): void {
         this._rasterizer.clear();
 
-        for (const instance of scene.instances) {
-            const figureForInstance: FigureDescription = scene.figures
+        for (const instance of this._scene.instances) {
+            const figureForInstance: FigureDescription = this._scene.figures
                 .find(figure => figure.name === instance.name);
 
             const transformedVertices = this.applyTransforms(figureForInstance.vertices, instance);
 
-            const projectedVertices: Point3f[] = this.applyProjections(transformedVertices,
-                scene.camera.viewWindowPosition);
+            const clippingResult = this._clipper.check(transformedVertices, figureForInstance.triangles);
+            if (clippingResult.status === ClippingResult.Discarded) {
+                continue;
+            }
+
+            const projectedVertices: Point3f[] = this.applyProjections(transformedVertices);
 
             for (const triangle of figureForInstance.triangles) {
                 this.drawFilledTriangle(projectedVertices, triangle);
@@ -80,18 +89,18 @@ export class SceneRenderer implements IRenderer {
         return transformedVertices;
     }
 
-    private applyProjections(vertices: Point3f[], viewWindowPosition: Point3f): Point3f[] {
-        const afterProjection: Point3f[] = this.applyProjection(vertices, viewWindowPosition);
+    private applyProjections(vertices: Point3f[]): Point3f[] {
+        const afterProjection: Point3f[] = this.applyProjection(vertices);
         const afterCanvasProjection: Point3f[] = this.applyCanvasProjection(afterProjection);
 
         return this.applyCanvasCenteringAndYAxisInverse(afterCanvasProjection);
     }
 
-    private applyProjection(vertices: Point3f[], viewWindowPosition: Point3f): Point3f[] {
+    private applyProjection(vertices: Point3f[]): Point3f[] {
         return vertices.map(vertex =>
             new Point3f(
-                vertex.x * viewWindowPosition.z / vertex.z,
-                vertex.y * viewWindowPosition.z / vertex.z,
+                vertex.x * this._scene.camera.frustum.near / vertex.z,
+                vertex.y * this._scene.camera.frustum.near / vertex.z,
                 1 / vertex.z));
 
     }
@@ -99,14 +108,14 @@ export class SceneRenderer implements IRenderer {
     private applyCanvasCenteringAndYAxisInverse(vertices: Point3f[]): Point3f[] {
         return vertices.map(vertex =>
             new Point3f(
-                vertex.x + this._canvasSettings.Width / 2,
-                this._canvasSettings.Height / 2 - vertex.y,
+                vertex.x + this._canvasSettings.width / 2,
+                this._canvasSettings.height / 2 - vertex.y,
                 vertex.z));
     }
 
     private applyCanvasProjection(vertices: Point3f[]): Point3f[] {
-        const xKoeff: number = this._canvasSettings.Width / 10;
-        const yKoeff: number = this._canvasSettings.Height / 8;
+        const xKoeff: number = this._canvasSettings.width / 10;
+        const yKoeff: number = this._canvasSettings.height / 8;
 
         return vertices.map(vertex =>
             new Point3f(

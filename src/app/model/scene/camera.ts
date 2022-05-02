@@ -1,7 +1,8 @@
 import { Point3f } from "../geometry/point3f";
+import { ViewFrustum } from "./view_frustum";
 
 export class Camera {
-    public position: Point3f;
-
-    public viewWindowPosition: Point3f;
+    public constructor(
+        public readonly position: Point3f,
+        public readonly frustum: ViewFrustum) { }
 }

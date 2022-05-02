@@ -1,8 +1,11 @@
+import { Clipper } from "./clipping/clipper";
 import { CanvasSettings } from "./configuration/canvas_settings";
-import { IRenderer } from "./contracts/IRenderer";
+import { IRenderer } from "./contracts/irenderer";
 import { IFilter } from "./filters/ifilter";
 import { SimpleAntialiasing } from "./filters/simple_antialiasing";
+import { SceneDescription } from "./model/scene/scene_description";
 import { Rasterizer } from "./rasterizer";
+import { SceneLoader } from "./scene_loader";
 import { SceneRenderer } from "./scene_renderer";
 
 export class App {
@@ -14,9 +17,9 @@ export class App {
         const canvasSettings: CanvasSettings = new CanvasSettings(800, 600);
         const simpleAntialiasing: IFilter = new SimpleAntialiasing(canvasSettings);
         const rasterizer: Rasterizer = new Rasterizer(context, canvasSettings, [simpleAntialiasing]);
-
-        //this._renderer = new UserInputRenderer(canvas, rasterizer);
-        this._renderer = new SceneRenderer(rasterizer, canvasSettings);
+        const scene: SceneDescription = SceneLoader.loadScene();
+        const clipper: Clipper = new Clipper(scene.camera.frustum);
+        this._renderer = new SceneRenderer(scene, clipper, rasterizer, canvasSettings);
     }
 
     public start() {

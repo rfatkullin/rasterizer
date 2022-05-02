@@ -1,4 +1,5 @@
 export class TriangleDescription {
-    public indices: number[];
-    public color: string;
+    public constructor(
+        public readonly indices: number[],
+        public readonly color: string) { }
 }

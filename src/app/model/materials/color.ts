@@ -7,13 +7,8 @@ export class Color {
     public static readonly Purple: Color = { r: 185, g: 65, b: 255 };
     public static readonly Cyan: Color = { r: 19, g: 218, b: 233 };
 
-    public r: number;
-    public g: number;
-    public b: number;
-
-    constructor(newR: number, newG: number, newB: number) {
-        this.r = newR;
-        this.g = newG;
-        this.b = newB;
-    }
+    constructor(
+        public readonly r: number,
+        public readonly g: number,
+        public readonly b: number) { }
 }

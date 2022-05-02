@@ -1,0 +1,187 @@
+{
+    "figures": [
+        {
+            "name": "cube",
+            "vertices": [
+                [
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    -1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    -1,
+                    -1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    -1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    -1,
+                    1
+                ],
+                [
+                    -1,
+                    1,
+                    -1,
+                    1
+                ],
+                [
+                    -1,
+                    -1,
+                    -1,
+                    1
+                ],
+                [
+                    1,
+                    -1,
+                    -1,
+                    1
+                ]
+            ],
+            "triangles": [
+                {
+                    "color": "red",
+                    "indices": [
+                        0,
+                        1,
+                        2
+                    ]
+                },
+                {
+                    "color": "red",
+                    "indices": [
+                        0,
+                        2,
+                        3
+                    ]
+                },
+                {
+                    "color": "green",
+                    "indices": [
+                        4,
+                        0,
+                        3
+                    ]
+                },
+                {
+                    "color": "green",
+                    "indices": [
+                        4,
+                        3,
+                        7
+                    ]
+                },
+                {
+                    "color": "blue",
+                    "indices": [
+                        5,
+                        4,
+                        7
+                    ]
+                },
+                {
+                    "color": "blue",
+                    "indices": [
+                        5,
+                        7,
+                        6
+                    ]
+                },
+                {
+                    "color": "yellow",
+                    "indices": [
+                        1,
+                        5,
+                        6
+                    ]
+                },
+                {
+                    "color": "yellow",
+                    "indices": [
+                        1,
+                        6,
+                        2
+                    ]
+                },
+                {
+                    "color": "purple",
+                    "indices": [
+                        4,
+                        5,
+                        1
+                    ]
+                },
+                {
+                    "color": "purple",
+                    "indices": [
+                        4,
+                        1,
+                        0
+                    ]
+                },
+                {
+                    "color": "cyan",
+                    "indices": [
+                        2,
+                        6,
+                        7
+                    ]
+                },
+                {
+                    "color": "cyan",
+                    "indices": [
+                        2,
+                        7,
+                        3
+                    ]
+                }
+            ]
+        }
+    ],
+    "instances": [
+        {
+            "name": "cube",
+            "scale": {
+                "x": 8,
+                "y": 3.5,
+                "z": 5
+            },
+            "rotation": {
+                "x": 15,
+                "y": 35,
+                "z": 25
+            },
+            "translate": {
+                "x": 0,
+                "y": 0,
+                "z": 80
+            }
+        }
+    ],
+    "camera": {
+        "position": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        },
+        "frustum": {
+            "fovInDegrees": 90,
+            "near": 30,
+            "far": 100
+        }
+    }
+}
