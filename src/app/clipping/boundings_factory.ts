@@ -8,18 +8,11 @@ export class BoundingsFactory {
 
     private static welzlForSphere(p: Point3f[], r: Point3f[]): Sphere {
         if (p.length == 0) {
-            if (r.length <= 1) {
-                return Sphere.Dummy;
-            }
-            if (r.length <= 2) {
-                return this.getSphereByTwoPoints(r[0], r[1]);
-            }
-
-            return this.getSphereByThreePoints(r[0], r[1], r[2]);
+            return this.getSphereWithTrivialAlgorithm(r);
         }
 
         const randomPointIndex: number = Math.floor(Math.random() * p.length);
-        var excludedPoints = p.splice(randomPointIndex, 1);
+        const excludedPoints = p.splice(randomPointIndex, 1);
 
         const sphereWithoutPointInBorder = this.welzlForSphere(p, r);
         if (sphereWithoutPointInBorder.isIn(excludedPoints[0])) {
@@ -27,7 +20,20 @@ export class BoundingsFactory {
         }
 
         r.push(excludedPoints[0]);
+        
         return this.welzlForSphere(p, r);
+    }
+
+    private static getSphereWithTrivialAlgorithm(points: Point3f[]): Sphere {
+        if (points.length <= 1) {
+            return Sphere.Dummy;
+        }
+
+        if (points.length <= 2) {
+            return this.getSphereByTwoPoints(points[0], points[1]);
+        }
+
+        return this.getSphereByThreePoints(points[0], points[1], points[2]);
     }
 
     private static getSphereByTwoPoints(p1: Point3f, p2: Point3f): Sphere {
