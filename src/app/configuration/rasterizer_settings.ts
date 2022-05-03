@@ -1,3 +1,3 @@
 export class RasterizerSettings {
-    public static UseFilters: boolean = true;
+    public static UseFilters: boolean = false;
 }

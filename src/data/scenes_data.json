@@ -156,19 +156,163 @@
         {
             "name": "cube",
             "scale": {
-                "x": 8,
-                "y": 3.5,
+                "x": 5,
+                "y": 5,
                 "z": 5
             },
             "rotation": {
-                "x": 15,
-                "y": 35,
-                "z": 25
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "translate": {
                 "x": 0,
                 "y": 0,
-                "z": 80
+                "z": 50
+            }
+        },
+        {
+            "name": "cube",
+            "scale": {
+                "x": 5,
+                "y": 5,
+                "z": 5
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "translate": {
+                "x": 35,
+                "y": 0,
+                "z": 50
+            }
+        },
+        {
+            "name": "cube",
+            "scale": {
+                "x": 5,
+                "y": 5,
+                "z": 5
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "translate": {
+                "x": -35,
+                "y": 0,
+                "z": 50
+            }
+        },
+        {
+            "name": "cube",
+            "scale": {
+                "x": 5,
+                "y": 5,
+                "z": 5
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "translate": {
+                "x": 0,
+                "y": -20,
+                "z": 50
+            }
+        },
+        {
+            "name": "cube",
+            "scale": {
+                "x": 5,
+                "y": 5,
+                "z": 5
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "translate": {
+                "x": 0,
+                "y": 20,
+                "z": 50
+            }
+        },
+        {
+            "name": "cube",
+            "scale": {
+                "x": 5,
+                "y": 5,
+                "z": 5
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "translate": {
+                "x": 35,
+                "y": 20,
+                "z": 50
+            }
+        },
+        {
+            "name": "cube",
+            "scale": {
+                "x": 5,
+                "y": 5,
+                "z": 5
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "translate": {
+                "x": -35,
+                "y": 20,
+                "z": 50
+            }
+        },
+        {
+            "name": "cube",
+            "scale": {
+                "x": 5,
+                "y": 5,
+                "z": 5
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "translate": {
+                "x": -35,
+                "y": -20,
+                "z": 50
+            }
+        },
+        {
+            "name": "cube",
+            "scale": {
+                "x": 5,
+                "y": 5,
+                "z": 5
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "translate": {
+                "x": 35,
+                "y": -20,
+                "z": 50
             }
         }
     ],
@@ -180,7 +324,7 @@
         },
         "frustum": {
             "fovInDegrees": 90,
-            "near": 30,
+            "near": 10,
             "far": 100
         }
     }

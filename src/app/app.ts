@@ -17,7 +17,7 @@ export class App {
         const canvasSettings: CanvasSettings = new CanvasSettings(800, 600);
         const simpleAntialiasing: IFilter = new SimpleAntialiasing(canvasSettings);
         const rasterizer: Rasterizer = new Rasterizer(context, canvasSettings, [simpleAntialiasing]);
-        const scene: SceneDescription = SceneLoader.loadScene();
+        const scene: SceneDescription = SceneLoader.loadScene(canvasSettings.aspectRatio);
         const clipper: Clipper = new Clipper(scene.camera.frustum);
         this._renderer = new SceneRenderer(scene, clipper, rasterizer, canvasSettings);
     }

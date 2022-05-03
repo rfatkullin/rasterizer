@@ -1,14 +1,15 @@
 import { Clipper } from "./clipping/clipper";
 import { CanvasSettings } from "./configuration/canvas_settings";
+import { RendererSettings } from "./configuration/renderer_settings";
 import { IRenderer } from "./contracts/irenderer";
 import { VectorMath } from "./math/vector_math";
-import { ClippingResult } from "./model/clipping_result";
 import { Point3f } from "./model/geometry/point3f";
 import { Color } from "./model/materials/color";
 import { FigureDescription } from "./model/scene/figure_description";
 import { FigureInstance } from "./model/scene/figure_instance";
 import { SceneDescription } from "./model/scene/scene_description";
 import { TriangleDescription } from "./model/scene/triangle_description";
+import { ViewFrustum } from "./model/scene/view_frustum";
 import { Rasterizer } from "./rasterizer";
 import { TransformFactory } from "./transforms/transforms_factory";
 import { ColorUtils } from "./utils/color_utils";
@@ -35,14 +36,19 @@ export class SceneRenderer implements IRenderer {
 
             const transformedVertices = this.applyTransforms(figureForInstance.vertices, instance);
 
-            const clippingResult = this._clipper.check(transformedVertices, figureForInstance.triangles);
-            if (clippingResult.status === ClippingResult.Discarded) {
-                continue;
+            let triangles = figureForInstance.triangles;
+
+            if (RendererSettings.IsClippingEnabled) {
+                triangles = this._clipper.clip(transformedVertices, figureForInstance.triangles);
+
+                if (triangles.length === 0) {
+                    continue;
+                }
             }
 
             const projectedVertices: Point3f[] = this.applyProjections(transformedVertices);
 
-            for (const triangle of figureForInstance.triangles) {
+            for (const triangle of triangles) {
                 this.drawFilledTriangle(projectedVertices, triangle);
                 this.drawWiredTriangle(projectedVertices, triangle);
             }
@@ -106,21 +112,24 @@ export class SceneRenderer implements IRenderer {
     }
 
     private applyCanvasCenteringAndYAxisInverse(vertices: Point3f[]): Point3f[] {
-        return vertices.map(vertex =>
-            new Point3f(
-                vertex.x + this._canvasSettings.width / 2,
-                this._canvasSettings.height / 2 - vertex.y,
-                vertex.z));
+        const xOffset = this._canvasSettings.width / 2;
+        const yOffset = this._canvasSettings.height / 2;
+
+        return vertices.map(vertex => new Point3f(Math.max(vertex.x + xOffset - 1, 0.0), Math.max(yOffset - vertex.y - 1), vertex.z));
     }
 
     private applyCanvasProjection(vertices: Point3f[]): Point3f[] {
-        const xKoeff: number = this._canvasSettings.width / 10;
-        const yKoeff: number = this._canvasSettings.height / 8;
+        const frustum: ViewFrustum = this._scene.camera.frustum;
+        const nearPlaneWidth: number = 2 * frustum.near * Math.tan(frustum.horizontalFov / 2);
+        const nearPlaneHeight: number = 2 * frustum.near * Math.tan(frustum.verticalFov / 2);
+
+        const xFactor: number = this._canvasSettings.width / nearPlaneWidth;
+        const yFactor: number = this._canvasSettings.height / nearPlaneHeight;
 
         return vertices.map(vertex =>
             new Point3f(
-                vertex.x * xKoeff,
-                vertex.y * yKoeff,
+                vertex.x * xFactor,
+                vertex.y * yFactor,
                 vertex.z));
     }
 }
