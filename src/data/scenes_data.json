@@ -62,7 +62,7 @@
                     ]
                 },
                 {
-                    "color": "red",
+                    "color": "green",
                     "indices": [
                         0,
                         2,
@@ -86,7 +86,7 @@
                     ]
                 },
                 {
-                    "color": "blue",
+                    "color": "red",
                     "indices": [
                         5,
                         4,
@@ -166,24 +166,6 @@
                 "z": 0
             },
             "translate": {
-                "x": 0,
-                "y": 0,
-                "z": 50
-            }
-        },
-        {
-            "name": "cube",
-            "scale": {
-                "x": 5,
-                "y": 5,
-                "z": 5
-            },
-            "rotation": {
-                "x": 0,
-                "y": 0,
-                "z": 0
-            },
-            "translate": {
                 "x": 35,
                 "y": 0,
                 "z": 50
@@ -312,6 +294,24 @@
             "translate": {
                 "x": 35,
                 "y": -20,
+                "z": 50
+            }
+        },        
+        {
+            "name": "sphere",
+            "scale": {
+                "x": 20,
+                "y": 20,
+                "z": 20
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "translate": {
+                "x": 0,
+                "y": 0,
                 "z": 50
             }
         }

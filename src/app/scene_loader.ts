@@ -5,6 +5,7 @@ import { Point3f } from "./model/geometry/point3f";
 import { FigureInstance } from "./model/scene/figure_instance";
 import { ViewFrustum } from "./model/scene/view_frustum";
 import { TrigonometryUtils } from "./utils/trigonometry_utils";
+import { SphereMeshGenerator } from "./generators/sphere_mesh_generator";
 
 export class SceneLoader {
     public static loadScene(aspectRatio: number): SceneDescription {
@@ -16,6 +17,8 @@ export class SceneLoader {
             this.getPoint3f(instanceDescription.rotation),
             this.getPoint3f(instanceDescription.translate)));
 
+        const figures = sceneData.figures;
+        figures.push(SphereMeshGenerator.generateSphereMesh("sphere"));
 
         return new SceneDescription(sceneData.figures, instances, camera);
     }
@@ -27,8 +30,10 @@ export class SceneLoader {
 
     private static getViewFrustum(aspectRatio: number, frustumDescription: { fovInDegrees: number, near: number, far: number }): ViewFrustum {
         const horizontalFov = TrigonometryUtils.toRadians(frustumDescription.fovInDegrees);
-        const verticalFov = (1 / aspectRatio) * horizontalFov;
+        const nearPlaneWidth: number = 2 * frustumDescription.near * Math.tan(horizontalFov / 2);
+        const nearPlaneHeight: number = nearPlaneWidth / aspectRatio;
+        const verticalFov = 2 * Math.atan(nearPlaneHeight / (2 * frustumDescription.near));
 
-        return new ViewFrustum(horizontalFov, verticalFov, frustumDescription.near, frustumDescription.far);
+        return new ViewFrustum(horizontalFov, verticalFov, frustumDescription.near, frustumDescription.far, nearPlaneWidth, nearPlaneHeight);
     }
 }

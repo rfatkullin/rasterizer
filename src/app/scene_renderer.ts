@@ -49,7 +49,9 @@ export class SceneRenderer implements IRenderer {
             const projectedVertices: Point3f[] = this.applyProjections(transformedVertices);
 
             for (const triangle of triangles) {
-                this.drawFilledTriangle(projectedVertices, triangle);
+                if (!RendererSettings.OnlyWired) {
+                    this.drawFilledTriangle(projectedVertices, triangle);
+                }
                 this.drawWiredTriangle(projectedVertices, triangle);
             }
         }
@@ -103,7 +105,7 @@ export class SceneRenderer implements IRenderer {
     }
 
     private applyProjection(vertices: Point3f[]): Point3f[] {
-        return vertices.map(vertex =>
+        return vertices.map(vertex => 
             new Point3f(
                 vertex.x * this._scene.camera.frustum.near / vertex.z,
                 vertex.y * this._scene.camera.frustum.near / vertex.z,
@@ -120,11 +122,9 @@ export class SceneRenderer implements IRenderer {
 
     private applyCanvasProjection(vertices: Point3f[]): Point3f[] {
         const frustum: ViewFrustum = this._scene.camera.frustum;
-        const nearPlaneWidth: number = 2 * frustum.near * Math.tan(frustum.horizontalFov / 2);
-        const nearPlaneHeight: number = 2 * frustum.near * Math.tan(frustum.verticalFov / 2);
 
-        const xFactor: number = this._canvasSettings.width / nearPlaneWidth;
-        const yFactor: number = this._canvasSettings.height / nearPlaneHeight;
+        const xFactor: number = this._canvasSettings.width / frustum.nearPlaneWidth;
+        const yFactor: number = this._canvasSettings.height / frustum.nearPlaneHeight;
 
         return vertices.map(vertex =>
             new Point3f(
