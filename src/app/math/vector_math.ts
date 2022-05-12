@@ -1,5 +1,3 @@
-import { Point3f } from "../model/geometry/point3f";
-
 export class VectorMath {
     public static mult(matrix: number[][], vector: number[]): number[] {
         return [
@@ -10,7 +8,22 @@ export class VectorMath {
         ]
     }
 
-    public static asMatrix(point: Point3f): number[] {
-        return [point.x, point.y, point.z];
+    public static multMatrix(a: number[][], b: number[][]): number[][] {
+        const result: number[][] = [];
+
+        for (let i = 0; i < 4; i++) {
+            const row: number[] = [];
+            for (let j = 0; j < 4; j++) {
+                let mult = 0;
+                for (let k = 0; k < 4; k++) {
+                    mult += a[i][k] * b[k][j];
+                }
+                row.push(mult);
+            }
+
+            result.push(row);
+        }
+
+        return result;
     }
 }

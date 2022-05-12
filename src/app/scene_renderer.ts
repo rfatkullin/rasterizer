@@ -86,12 +86,12 @@ export class SceneRenderer implements IRenderer {
         const rotation = TransformFactory.getRotationMatrix(instance.rotation);
         const translate = TransformFactory.getTranslationMatrix(instance.translate);
 
-        const transformedVertices: Point3f[] = vertices.map(vertex => {
-            let newVertices: number[] = VectorMath.mult(scale, vertex);
-            newVertices = VectorMath.mult(rotation, newVertices);
-            newVertices = VectorMath.mult(translate, newVertices);
+        const modelViewTransform = VectorMath.multMatrix(translate, VectorMath.multMatrix(rotation, scale));
 
-            return new Point3f(newVertices[0], newVertices[1], newVertices[2]);
+        const transformedVertices: Point3f[] = vertices.map(vertex => {
+            let newVertex: number[] = VectorMath.mult(modelViewTransform, vertex);
+
+            return new Point3f(newVertex[0], newVertex[1], newVertex[2]);
         });
 
         return transformedVertices;
