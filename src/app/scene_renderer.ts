@@ -34,29 +34,29 @@ export class SceneRenderer implements IRenderer {
             const figureForInstance: FigureDescription = this._scene.figures
                 .find(figure => figure.name === instance.name);
 
-            const transformedVertices = this.applyTransforms(figureForInstance.vertices, instance);
+            const modelViewMatrx = this.getModelViewMatrix(instance);
+            const transformedVertices = this.applyTransforms(figureForInstance.vertices, modelViewMatrx);
 
-            let triangles = figureForInstance.triangles;
-
-            if (RendererSettings.IsClippingEnabled) {
-                triangles = this._clipper.clip(transformedVertices, figureForInstance.triangles);
-
-                if (triangles.length === 0) {
-                    continue;
-                }
+            let triangles = this._clipper.clip(transformedVertices, figureForInstance.triangles);
+            if (triangles.length === 0) {
+                continue;
             }
 
             const projectedVertices: Point3f[] = this.applyProjections(transformedVertices);
-
-            for (const triangle of triangles) {
-                if (!RendererSettings.OnlyWired) {
-                    this.drawFilledTriangle(projectedVertices, triangle);
-                }
-                this.drawWiredTriangle(projectedVertices, triangle);
-            }
+            this.renderTriangles(projectedVertices, triangles);
         }
 
         this._rasterizer.flush();
+    }
+
+    private renderTriangles(vertices: Point3f[], triangles: TriangleDescription[]): void {
+        for (const triangle of triangles) {
+            if (!RendererSettings.OnlyWired) {
+                this.drawFilledTriangle(vertices, triangle);
+            }
+
+            this.drawWiredTriangle(vertices, triangle);
+        }
     }
 
     private drawWiredTriangle(vertices: Point3f[], triangle: TriangleDescription): void {
@@ -81,13 +81,15 @@ export class SceneRenderer implements IRenderer {
         this._rasterizer.drawFilledTriangle(p0, p1, p2, color);
     }
 
-    private applyTransforms(vertices: number[][], instance: FigureInstance): Point3f[] {
+    private getModelViewMatrix(instance: FigureInstance): number[][] {
         const scale = TransformFactory.getScaleMatrix(instance.scale);
         const rotation = TransformFactory.getRotationMatrix(instance.rotation);
         const translate = TransformFactory.getTranslationMatrix(instance.translate);
 
-        const modelViewTransform = VectorMath.multMatrix(translate, VectorMath.multMatrix(rotation, scale));
+        return VectorMath.multMatrix(translate, VectorMath.multMatrix(rotation, scale));
+    }
 
+    private applyTransforms(vertices: number[][], modelViewTransform: number[][]): Point3f[] {
         const transformedVertices: Point3f[] = vertices.map(vertex => {
             let newVertex: number[] = VectorMath.mult(modelViewTransform, vertex);
 
@@ -105,7 +107,7 @@ export class SceneRenderer implements IRenderer {
     }
 
     private applyProjection(vertices: Point3f[]): Point3f[] {
-        return vertices.map(vertex => 
+        return vertices.map(vertex =>
             new Point3f(
                 vertex.x * this._scene.camera.frustum.near / vertex.z,
                 vertex.y * this._scene.camera.frustum.near / vertex.z,
