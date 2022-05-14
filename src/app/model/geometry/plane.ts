@@ -12,16 +12,17 @@ export class Plane {
         return Math.abs(this.normal.dotProduct(point) + this.distance) / this.normal.length;
     }
 
-    public getSegmentIntersection(point1: Point3f, point2: Point3f): Point3f | null {
-        const p2_p1 = point2.sub(point1);
+    public getSegmentIntersection(point1: Point3f, point2: Point3f): { point: Point3f, t: number } | null {
+        const p1_p2 = point2.sub(point1);
 
-        const delimeter = this.normal.dotProduct(p2_p1);
+        const delimeter = this.normal.dotProduct(p1_p2);
         if (Math.abs(delimeter) < Number.EPSILON) {
             return null;
         }
 
         const t = -(this.normal.dotProduct(point1) + this.distance) / delimeter;
+        const point = point1.add(p1_p2.multiplyScalar(t));
 
-        return point1.add(p2_p1.multiplyScalar(t));
+        return { point, t };
     }
 }

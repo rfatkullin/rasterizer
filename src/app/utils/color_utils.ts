@@ -2,6 +2,14 @@ import { Color } from "../model/materials/color";
 
 export class ColorUtils {
 
+    public static add(a: Color, b: Color): Color {
+        return new Color(
+            Math.min(a.r + b.r, 1.0),
+            Math.min(a.g + b.g, 1.0),
+            Math.min(a.b + b.b, 1.0)
+        )
+    }
+
     public static getColorByName(colorName: string): Color {
         switch (colorName) {
             case "red": {
@@ -29,6 +37,22 @@ export class ColorUtils {
                 return Color.Black
             }
         }
+    }
+
+    public static interpolate(aColor: Color, bColor: Color, t: number): Color {
+        const colorVector: Color = new Color(bColor.r - aColor.r, bColor.g - aColor.g, bColor.b - aColor.b);
+        
+        return new Color(aColor.r + t * colorVector.r, aColor.g + t * colorVector.g, aColor.b + t * colorVector.b)
+    }
+
+    public static generateRandomColorNames(colorsNumber: number): string[] {
+        const result: string[] = [];
+
+        for(let i = 0; i < colorsNumber; i++) {
+            result.push(this.getRandomColorName());
+        }
+
+        return result;
     }
 
     public static getRandomColorName(): string {

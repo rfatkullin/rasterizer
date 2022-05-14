@@ -2,6 +2,7 @@ import { Clipper } from "./clipping/clipper";
 import { CanvasSettings } from "./configuration/canvas_settings";
 import { RendererSettings } from "./configuration/renderer_settings";
 import { IRenderer } from "./contracts/irenderer";
+import { LightCalculator } from "./light_calculator";
 import { VectorMath } from "./math/vector_math";
 import { Point3f } from "./model/geometry/point3f";
 import { Color } from "./model/materials/color";
@@ -12,15 +13,17 @@ import { TriangleDescription } from "./model/scene/triangle_description";
 import { ViewFrustum } from "./model/scene/view_frustum";
 import { Rasterizer } from "./rasterizer";
 import { TransformFactory } from "./transforms/transforms_factory";
-import { ColorUtils } from "./utils/color_utils";
 
 export class SceneRenderer implements IRenderer {
+    private readonly _lightCalculator: LightCalculator;
 
     public constructor(
         private readonly _scene: SceneDescription,
         private readonly _clipper: Clipper,
         private readonly _rasterizer: Rasterizer,
         private readonly _canvasSettings: CanvasSettings) {
+
+        this._lightCalculator = new LightCalculator(_scene.lighting, _scene.camera);
     }
 
     public start(): void {
@@ -34,51 +37,62 @@ export class SceneRenderer implements IRenderer {
             const figureForInstance: FigureDescription = this._scene.figures
                 .find(figure => figure.name === instance.name);
 
-            const modelViewMatrx = this.getModelViewMatrix(instance);
-            const transformedVertices = this.applyTransforms(figureForInstance.vertices, modelViewMatrx);
+            const modelViewMatrix = this.getModelViewMatrix(instance);
+            const transformedVertices = this.applyTransforms(figureForInstance.vertices, modelViewMatrix);
 
-            let triangles = this._clipper.clip(transformedVertices, figureForInstance.triangles);
+            const normalsModelViewMatrix = VectorMath.transpose(VectorMath.inverse3by3Matrix(VectorMath.getSubMatrix(modelViewMatrix, 3, 3)));
+            let triangles: TriangleDescription[] = this.applyNormalsTransforms(normalsModelViewMatrix, figureForInstance.triangles);
+
+            triangles = this._clipper.clip(transformedVertices, triangles);
             if (triangles.length === 0) {
                 continue;
             }
 
             const projectedVertices: Point3f[] = this.applyProjections(transformedVertices);
-            this.renderTriangles(projectedVertices, triangles);
+            this.renderTriangles(projectedVertices, transformedVertices, triangles);
         }
 
         this._rasterizer.flush();
     }
 
-    private renderTriangles(vertices: Point3f[], triangles: TriangleDescription[]): void {
+    private renderTriangles(projectedVertices: Point3f[], onlyTransformedVertices: Point3f[], triangles: TriangleDescription[]): void {
         for (const triangle of triangles) {
             if (!RendererSettings.OnlyWired) {
-                this.drawFilledTriangle(vertices, triangle);
+                this.drawFilledTriangle(projectedVertices, onlyTransformedVertices, triangle);
             }
 
-            this.drawWiredTriangle(vertices, triangle);
+            //this.drawWiredTriangle(projectedVertices, triangle);
         }
     }
 
     private drawWiredTriangle(vertices: Point3f[], triangle: TriangleDescription): void {
-        const color: Color = ColorUtils.getColorByName(triangle.color);
-
         const p0: Point3f = vertices[triangle.indices[0]];
         const p1: Point3f = vertices[triangle.indices[1]];
         const p2: Point3f = vertices[triangle.indices[2]];
 
-        this._rasterizer.drawLine(p0, p1, color);
-        this._rasterizer.drawLine(p1, p2, color);
-        this._rasterizer.drawLine(p2, p0, color);
+        const color0: Color = this.getVertexColor(vertices[0], triangle.normals[0], triangle.colors[0]);
+        const color1: Color = this.getVertexColor(vertices[1], triangle.normals[1], triangle.colors[1]);
+        const color2: Color = this.getVertexColor(vertices[2], triangle.normals[2], triangle.colors[2]);
+
+        this._rasterizer.drawLine(p0, p1, color0, color1);
+        this._rasterizer.drawLine(p1, p2, color1, color2);
+        this._rasterizer.drawLine(p2, p0, color2, color0);
     }
 
-    private drawFilledTriangle(vertices: Point3f[], triangle: TriangleDescription): void {
-        const color: Color = ColorUtils.getColorByName(triangle.color);
-
+    private drawFilledTriangle(vertices: Point3f[], onlyTransformedVertices: Point3f[], triangle: TriangleDescription): void {
         const p0: Point3f = vertices[triangle.indices[0]];
         const p1: Point3f = vertices[triangle.indices[1]];
         const p2: Point3f = vertices[triangle.indices[2]];
 
-        this._rasterizer.drawFilledTriangle(p0, p1, p2, color);
+        const color0: Color = this.getVertexColor(onlyTransformedVertices[triangle.indices[0]], triangle.normals[0], triangle.colors[0]);
+        const color1: Color = this.getVertexColor(onlyTransformedVertices[triangle.indices[1]], triangle.normals[1], triangle.colors[1]);
+        const color2: Color = this.getVertexColor(onlyTransformedVertices[triangle.indices[2]], triangle.normals[2], triangle.colors[2]);
+
+        this._rasterizer.drawFilledTriangle(p0, p1, p2, color0, color1, color2);
+    }
+
+    private getVertexColor(vertex: Point3f, normal: number[], color: Color): Color {
+        return this._lightCalculator.calculateColor(this.revertProjection(vertex), new Point3f(normal[0], normal[1], normal[2]), color);
     }
 
     private getModelViewMatrix(instance: FigureInstance): number[][] {
@@ -87,6 +101,18 @@ export class SceneRenderer implements IRenderer {
         const translate = TransformFactory.getTranslationMatrix(instance.translate);
 
         return VectorMath.multMatrix(translate, VectorMath.multMatrix(rotation, scale));
+    }
+
+    private applyNormalsTransforms(normalsModelViewMatrix: number[][], triangles: TriangleDescription[]): TriangleDescription[] {
+        const result: TriangleDescription[] = [];
+
+        for (let triangle of triangles) {
+            const transformedTrianleNormals = triangle.normals.map(normal => VectorMath.mult(normalsModelViewMatrix, normal));
+
+            result.push(new TriangleDescription(triangle.indices, triangle.colors, transformedTrianleNormals));
+        }
+
+        return result;
     }
 
     private applyTransforms(vertices: number[][], modelViewTransform: number[][]): Point3f[] {
@@ -104,6 +130,14 @@ export class SceneRenderer implements IRenderer {
         const afterCanvasProjection: Point3f[] = this.applyCanvasProjection(afterProjection);
 
         return this.applyCanvasCenteringAndYAxisInverse(afterCanvasProjection);
+    }
+
+    private revertProjection(vertex: Point3f): Point3f {
+        return new Point3f(
+            vertex.x / (this._scene.camera.frustum.near * vertex.z),
+            vertex.y / (this._scene.camera.frustum.near * vertex.z),
+            1 / vertex.z);
+
     }
 
     private applyProjection(vertices: Point3f[]): Point3f[] {

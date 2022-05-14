@@ -1,9 +1,12 @@
+import { VectorMath } from "../math/vector_math";
 import { Plane } from "../model/geometry/plane";
 import { Point3f } from "../model/geometry/point3f";
+import { Color } from "../model/materials/color";
 import { TriangleDescription } from "../model/scene/triangle_description";
 import { ViewFrustum } from "../model/scene/view_frustum";
-import { TrigonometryUtils } from "../utils/trigonometry_utils";
+import { ColorUtils } from "../utils/color_utils";
 import { BoundingsFactory } from "./boundings_factory";
+import { Intersection } from "./intersection";
 
 export class Clipper {
     private readonly _planes: Plane[];
@@ -36,30 +39,59 @@ export class Clipper {
         const newTriangles: TriangleDescription[] = [];
 
         for (let triangle of triangles) {
-            const result = this.clipTriangleByPlane(plane, vertices, triangle);
+            const clipResult = this.clipTriangleByPlane(plane, vertices, triangle);
 
-            if (result.remainingVertexIndices.length === 0) {
+            // Cut off the whole triangle
+            if (clipResult === null) {
                 continue;
             }
 
-            if (result.remainingVertexIndices.length === 3) {
+            // The triangle stays unchanged
+            if (clipResult instanceof TriangleDescription) {
                 newTriangles.push(triangle);
                 continue;
             }
 
             const verticesLastIndex = vertices.length;
-            vertices.push(result.newVertices[0]);
-            vertices.push(result.newVertices[1]);
+            vertices.push(clipResult[0].intersectionPoint)
+            vertices.push(clipResult[1].intersectionPoint);
 
-            newTriangles.push(new TriangleDescription(
-                [result.remainingVertexIndices[0], verticesLastIndex, verticesLastIndex + 1],
-                triangle.color
-            ));
+            // Only one vertex inside
+            if (clipResult[1].inVertexIndex >= verticesLastIndex) {
+                let color1 = this.getColorByVertexIndex(triangle, clipResult[0].inVertexIndex);
+                let color2 = this.getInterpolatedColorByVertexIndices(triangle, clipResult[0].inVertexIndex, clipResult[0].outVertexIndex, clipResult[0].t);
+                let color3 = this.getInterpolatedColorByVertexIndices(triangle, clipResult[0].inVertexIndex, clipResult[1].outVertexIndex, clipResult[1].t);
 
-            if (result.remainingVertexIndices.length === 2) {
+                let normal1 = this.getNormalByVertexIndex(triangle, clipResult[0].inVertexIndex);
+                let normal2 = this.getInterpolatedNormalByVertexIndices(triangle, clipResult[0].inVertexIndex, clipResult[0].outVertexIndex, clipResult[0].t);
+                let normal3 = this.getInterpolatedNormalByVertexIndices(triangle, clipResult[0].inVertexIndex, clipResult[1].outVertexIndex, clipResult[1].t);
+
                 newTriangles.push(new TriangleDescription(
-                    [result.remainingVertexIndices[0], verticesLastIndex + 1, result.remainingVertexIndices[1]],
-                    triangle.color
+                    [clipResult[0].inVertexIndex, verticesLastIndex, verticesLastIndex + 1],
+                    [color1, color2, color3],
+                    [normal1, normal2, normal3]
+                ));
+            } else { // Two vertices inside
+                let color1 = this.getColorByVertexIndex(triangle, clipResult[0].inVertexIndex);
+                let color2 = this.getInterpolatedColorByVertexIndices(triangle, clipResult[0].inVertexIndex, clipResult[0].outVertexIndex, clipResult[0].t);
+                let color3 = this.getColorByVertexIndex(triangle, clipResult[1].inVertexIndex);
+                let color4 = this.getInterpolatedColorByVertexIndices(triangle, clipResult[1].inVertexIndex, clipResult[1].outVertexIndex, clipResult[1].t);
+
+                let normal1 = this.getNormalByVertexIndex(triangle, clipResult[0].inVertexIndex);
+                let normal2 = this.getInterpolatedNormalByVertexIndices(triangle, clipResult[0].inVertexIndex, clipResult[0].outVertexIndex, clipResult[0].t);
+                let normal3 = this.getNormalByVertexIndex(triangle, clipResult[1].inVertexIndex);
+                let normal4 = this.getInterpolatedNormalByVertexIndices(triangle, clipResult[1].inVertexIndex, clipResult[1].outVertexIndex, clipResult[1].t);
+
+                newTriangles.push(new TriangleDescription(
+                    [clipResult[0].inVertexIndex, verticesLastIndex, verticesLastIndex + 1],
+                    [color1, color2, color3],
+                    [normal1, normal2, normal3]
+                ));
+
+                newTriangles.push(new TriangleDescription(
+                    [clipResult[0].inVertexIndex, verticesLastIndex + 1, clipResult[1].inVertexIndex],
+                    [color1, color4, color3],
+                    [normal1, normal4, normal3]
                 ));
             }
         }
@@ -67,7 +99,29 @@ export class Clipper {
         return newTriangles;
     }
 
-    private clipTriangleByPlane(plane: Plane, vertices: Point3f[], triangle: TriangleDescription): { remainingVertexIndices: number[], newVertices: Point3f[] } {
+    private getColorByVertexIndex(triangle: TriangleDescription, vertexIndex: number): Color {
+        return triangle.colors[triangle.indices.findIndex(index => index === vertexIndex)];
+    }
+
+    private getInterpolatedColorByVertexIndices(triangle: TriangleDescription, aVertexIndex: number, bVertexIndex: number, t: number): Color {
+        const aColor = this.getColorByVertexIndex(triangle, aVertexIndex);
+        const bColor = this.getColorByVertexIndex(triangle, bVertexIndex);
+
+        return ColorUtils.interpolate(aColor, bColor, t);
+    }
+
+    private getNormalByVertexIndex(triangle: TriangleDescription, vertexIndex: number): number[] {
+        return triangle.normals[triangle.indices.findIndex(index => index === vertexIndex)];
+    }
+
+    private getInterpolatedNormalByVertexIndices(triangle: TriangleDescription, aVertexIndex: number, bVertexIndex: number, t: number): number[] {
+        const aNormal = this.getNormalByVertexIndex(triangle, aVertexIndex);
+        const bNormal = this.getNormalByVertexIndex(triangle, bVertexIndex);
+
+        return VectorMath.interpolateNormals(aNormal, bNormal, t);
+    }
+
+    private clipTriangleByPlane(plane: Plane, vertices: Point3f[], triangle: TriangleDescription): Intersection[] | TriangleDescription | null {
         const testResults: { isInFront: boolean, index: number }[] = triangle.indices.map(i => {
             return {
                 isInFront: plane.isInFront(vertices[i]),
@@ -79,30 +133,36 @@ export class Clipper {
             .map(element => element.index);
 
         if (verticesFromFrontSide.length === 3) {
-            return { remainingVertexIndices: verticesFromFrontSide, newVertices: [] };
+            return triangle;
         }
         if (verticesFromFrontSide.length === 0) {
-            return { remainingVertexIndices: [], newVertices: [] };
+            return null;
         }
 
         const verticesFromBackSide = testResults.filter(element => !element.isInFront)
             .map(element => element.index);
 
-        const newVertices: Point3f[] = [];
+        const intersections: Intersection[] = [];
 
         if (verticesFromBackSide.length === 1) {
-            newVertices.push(plane.getSegmentIntersection(vertices[verticesFromFrontSide[0]], vertices[verticesFromBackSide[0]]));
-            newVertices.push(plane.getSegmentIntersection(vertices[verticesFromFrontSide[1]], vertices[verticesFromBackSide[0]]));
+            let intersection = plane.getSegmentIntersection(vertices[verticesFromFrontSide[0]], vertices[verticesFromBackSide[0]]);
+            intersections.push(new Intersection(verticesFromFrontSide[0], verticesFromBackSide[0], intersection.point, intersection.t));
+
+            intersection = plane.getSegmentIntersection(vertices[verticesFromFrontSide[1]], vertices[verticesFromBackSide[0]]);
+            intersections.push(new Intersection(verticesFromFrontSide[1], verticesFromBackSide[0], intersection.point, intersection.t));
         } else {
-            newVertices.push(plane.getSegmentIntersection(vertices[verticesFromBackSide[0]], vertices[verticesFromFrontSide[0]]));
-            newVertices.push(plane.getSegmentIntersection(vertices[verticesFromBackSide[1]], vertices[verticesFromFrontSide[0]]));
+            let intersection = plane.getSegmentIntersection(vertices[verticesFromFrontSide[0]], vertices[verticesFromBackSide[0]]);
+            intersections.push(new Intersection(verticesFromFrontSide[0], verticesFromBackSide[0], intersection.point, intersection.t));
+
+            intersection = plane.getSegmentIntersection(vertices[verticesFromFrontSide[0]], vertices[verticesFromBackSide[1]]);
+            intersections.push(new Intersection(verticesFromFrontSide[0], verticesFromBackSide[1], intersection.point, intersection.t));
         }
 
-        if (newVertices.findIndex(vertex => vertex === null) >= 0) {
+        if (intersections.findIndex(vertex => vertex === null) >= 0) {
             throw new Error("Can't find plane and segment intersection");
         }
 
-        return { remainingVertexIndices: verticesFromFrontSide, newVertices };
+        return intersections;
     }
 
     private prepareClippingPlanes(frustum: ViewFrustum): Plane[] {

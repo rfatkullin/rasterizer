@@ -8,7 +8,9 @@ export class Rasterizer {
     private _pixelData: ImageData = null;
     private _depthBuffer: Map<number, number> = new Map<number, number>()
 
-    constructor(private _context: CanvasRenderingContext2D, private _canvasSettings: CanvasSettings, private _filters: IFilter[]) {
+    constructor(private readonly _context: CanvasRenderingContext2D, 
+        private readonly _canvasSettings: CanvasSettings, 
+        private readonly _filters: IFilter[]) {
 
         if (!RasterizerSettings.UseFilters) {
             this._filters = [];
@@ -50,32 +52,35 @@ export class Rasterizer {
 
         const data = this._pixelData.data;
 
-        data[off] = color.r;
-        data[off + 1] = color.g;
-        data[off + 2] = color.b;
+        data[off] = color.r * 255;
+        data[off + 1] = color.g * 255;
+        data[off + 2] = color.b * 255;
         data[off + 3] = 255;
     }
 
-    public drawLine(p0: Point3f, p1: Point3f, color: Color): void {
-        if (this.drawVerticalLine(p0, p1, color)) {
+    public drawLine(p0: Point3f, p1: Point3f, color1: Color, color2: Color): void {
+        if (p0.x === p1.x) {
+            this.drawVerticalLine(p0, p1, color1, color2)
             return;
         }
 
-        if (this.drawHorizontalLine(p0, p1, color)) {
+        if (p0.y === p1.y) {
+            this.drawHorizontalLine(p0, p1, color1, color2)
             return;
         }
 
         if (Math.abs(p0.x - p1.x) > Math.abs(p0.y - p1.y)) {
-            this.drawLineByOx(p0, p1, color);
+            this.drawLineByOx(p0, p1, color1, color2);
             return;
         }
 
-        this.drawLineByOy(p0, p1, color);
+        this.drawLineByOy(p0, p1, color1, color2);
     }
 
-    private drawLineByOx(p0: Point3f, p1: Point3f, color: Color) {
+    private drawLineByOx(p0: Point3f, p1: Point3f, color1: Color, color2: Color) {
         if (p0.x > p1.x) {
             [p1, p0] = [p0, p1];
+            [color1, color2] = [color2, color1];
         }
 
         const yDelta = (p1.y - p0.y) / (p1.x - p0.x);
@@ -84,14 +89,17 @@ export class Rasterizer {
         const zDelta = (p1.z - p0.z) / (p1.x - p0.x);
         const zValues = this.getIterated(p0.x, p1.x, p0.z, zDelta);
 
+        const colors = this.getIteratedColor(p0.x, p1.x, color1, color2);
+
         for (let i = 0; i < (p1.x - p0.x); ++i) {
-            this.drawPoint(p0.x + i, yValues[i], zValues[i], color);
+            this.drawPoint(p0.x + i, yValues[i], zValues[i], colors[i]);
         }
     }
 
-    private drawLineByOy(p0: Point3f, p1: Point3f, color: Color) {
+    private drawLineByOy(p0: Point3f, p1: Point3f, color1: Color, color2: Color) {
         if (p0.y > p1.y) {
             [p1, p0] = [p0, p1];
+            [color1, color2] = [color2, color1];
         }
 
         const xDelta = (p1.x - p0.x) / (p1.y - p0.y);
@@ -100,65 +108,66 @@ export class Rasterizer {
         const zDelta = (p1.z - p0.z) / (p1.y - p0.y);
         const zValues = this.getIterated(p0.y, p1.y, p0.z, zDelta);
 
+        const colors = this.getIteratedColor(p0.y, p1.y, color1, color2);
+
         for (let i = 0; i < (p1.y - p0.y); ++i) {
-            this.drawPoint(xValues[i], p0.y + i, zValues[i], color);
+            this.drawPoint(xValues[i], p0.y + i, zValues[i], colors[i]);
         }
     }
 
-    private drawVerticalLine(p0: Point3f, p1: Point3f, color: Color): boolean {
-        if (p0.x !== p1.x) {
-            return false;
+    private drawVerticalLine(p0: Point3f, p1: Point3f, color1: Color, color2: Color): void {
+        if (p0.y > p1.y) {
+            [p1, p0] = [p0, p1];
+            [color1, color2] = [color2, color1];
         }
 
-        const minY: number = Math.min(p0.y, p1.y);
-        const maxY: number = Math.max(p0.y, p1.y);
+        const zDelta = (p1.z - p0.z) / (p1.y - p0.y);
+        const zValues = this.getIterated(p0.y, p1.y, p0.z, zDelta);
 
-        const zDelta = (p1.z - p0.z) / (maxY - minY);
-        const zValues = this.getIterated(minY, maxY, p0.z, zDelta);
+        const colors = this.getIteratedColor(p0.y, p1.y, color1, color2);
 
-        for (let i = 0; i < (maxY - minY); ++i) {
-            this.drawPoint(p0.x, minY + i, zValues[i], color);
+        for (let i = 0; i < (p1.y - p0.y); ++i) {
+            this.drawPoint(p0.x, p0.y + i, zValues[i], colors[i]);
         }
-
-        return true;
     }
 
-    private drawHorizontalLine(p0: Point3f, p1: Point3f, color: Color): boolean {
-        if (p0.y !== p1.y) {
-            return false;
+    private drawHorizontalLine(p0: Point3f, p1: Point3f, color1: Color, color2: Color): void {
+        if (p0.x > p1.x) {
+            [p1, p0] = [p0, p1];
+            [color1, color2] = [color2, color1];
         }
 
-        const minX = Math.min(p0.x, p1.x);
-        const maxX = Math.max(p0.x, p1.x);
+        const zDelta = (p1.z - p0.z) / (p1.x - p0.x);
+        const zValues = this.getIterated(p0.x, p1.x, p0.z, zDelta);
 
-        const zDelta = (p1.z - p0.z) / (maxX - minX);
-        const zValues = this.getIterated(minX, maxX, p0.z, zDelta);
+        const colors = this.getIteratedColor(p0.x, p1.x, color1, color2);
 
-        for (let i = 0; i < (maxX - minX); ++i) {
-            this.drawPoint(minX + i, p0.y, zValues[i], color);
+        for (let i = 0; i < (p1.x - p0.x); ++i) {
+            this.drawPoint(p0.x + i, p0.y, zValues[i], colors[i]);
         }
-
-        return true;
     }
 
-    public drawFilledTriangle(p0: Point3f, p1: Point3f, p2: Point3f, color: Color): void {
+    public drawFilledTriangle(p0: Point3f, p1: Point3f, p2: Point3f, color0: Color, color1: Color, color2: Color): void {
         p0 = new Point3f(Math.floor(p0.x), Math.floor(p0.y), p0.z);
         p1 = new Point3f(Math.floor(p1.x), Math.floor(p1.y), p1.z);
         p2 = new Point3f(Math.floor(p2.x), Math.floor(p2.y), p2.z);
 
         if (p0.y > p1.y) {
-            [p1, p0] = [p0, p1]
+            [p1, p0] = [p0, p1];
+            [color1, color0] = [color0, color1];
         }
         if (p1.y > p2.y) {
-            [p2, p1] = [p1, p2]
+            [p2, p1] = [p1, p2];
+            [color2, color1] = [color1, color2];
         }
         if (p0.y > p1.y) {
-            [p1, p0] = [p0, p1]
+            [p1, p0] = [p0, p1];
+            [color1, color0] = [color0, color1];
         }
 
         let { left: leftX, right: rightX } = this.getInterpolatedX(p0, p1, p2);
         let { left: leftZ, right: rightZ } = this.getInterpolatedZ(p0, p1, p2);
-        let { left: leftColors, right: rightColors } = this.getInterpolatedColors(p0, p1, p2, color);
+        let { left: leftColors, right: rightColors } = this.getInterpolatedColors(p0, p1, p2, color0, color1, color2);
 
         const middleIndex = Math.floor(leftX.length / 2);
         if (leftX[middleIndex] > rightX[middleIndex]) {
@@ -206,21 +215,7 @@ export class Rasterizer {
         return { left: leftZ, right: rightZ };
     }
 
-    private getInterpolatedColors(p0: Point3f, p1: Point3f, p2: Point3f, color: Color): { left: Color[], right: Color[] } {
-        let color0: Color;
-        let color1: Color;
-        let color2: Color;
-
-        if (!color) {
-            color0 = this.getRandomColor();
-            color1 = this.getRandomColor();
-            color2 = this.getRandomColor();
-        } else {
-            color0 = color;
-            color1 = color;
-            color2 = color;
-        }
-
+    private getInterpolatedColors(p0: Point3f, p1: Point3f, p2: Point3f, color0: Color, color1: Color, color2: Color): { left: Color[], right: Color[] } {
         let c0p1: Color[] = this.getIteratedColor(p0.y, p1.y, color0, color1);
         let c1p2: Color[] = this.getIteratedColor(p1.y, p2.y, color1, color2);
         let c0p2: Color[] = this.getIteratedColor(p0.y, p2.y, color0, color2);
@@ -231,14 +226,6 @@ export class Rasterizer {
         let rightColors = c0p2;
 
         return { left: leftColors, right: rightColors };
-    }
-
-    private getRandomColor(): Color {
-        return {
-            r: Math.random() * 255,
-            g: Math.random() * 255,
-            b: Math.random() * 255
-        }
     }
 
     private getIterated(iStart: number, iEnd: number, dStart: number, step: number): number[] {

@@ -1,14 +1,13 @@
 import { RendererSettings } from "../configuration/renderer_settings";
 import { MeshDescription } from "../model/scene/raw/mesh_description";
 import { MeshTriangleDescription } from "../model/scene/raw/mesh_triangle_description";
-import { ColorUtils } from "../utils/color_utils";
 
 export class SphereMeshGenerator {
-    public static generateSphereMesh(meshName: string): MeshDescription {
+    public static generateSphereMesh(meshName: string, color: string): MeshDescription {
         const verticalSectionsNumber: number = RendererSettings.SphereDetalizationFactor;
         const horizontalSectionsNumber: number = RendererSettings.SphereDetalizationFactor;
         const sphereVertices: number[][] = this.generateUnitSphereVertices(verticalSectionsNumber, horizontalSectionsNumber);
-        const sphereTriangles = this.generateSphereTriangles(sphereVertices, horizontalSectionsNumber);
+        const sphereTriangles = this.generateSphereTriangles(sphereVertices, horizontalSectionsNumber, color);
 
         return {
             name: meshName,
@@ -20,7 +19,7 @@ export class SphereMeshGenerator {
     private static generateUnitSphereVertices(verticalSectionsNumber: number, horizontalSectionsNumber: number): number[][] {
         const sphereRadius: number = 0.5;
         const vertices: number[][] = [];
-        
+
         // bottom vertex of sphere
         vertices.push([0, -sphereRadius, 0, 1]);
 
@@ -48,8 +47,9 @@ export class SphereMeshGenerator {
         return vertices;
     }
 
-    private static generateSphereTriangles(vertices: number[][], horizontalSectionsNumber: number): MeshTriangleDescription[] {
+    private static generateSphereTriangles(vertices: number[][], horizontalSectionsNumber: number, color: string): MeshTriangleDescription[] {
         const triangles: MeshTriangleDescription[] = []
+        const colors = [color, color, color];
 
         for (let i = 0; i < horizontalSectionsNumber; i++) {
             const index1 = 0;
@@ -58,8 +58,8 @@ export class SphereMeshGenerator {
 
             triangles.push(
                 {
-                    color: ColorUtils.getRandomColorName(),
                     indices: [index1, index2, index3],
+                    colors: colors,
                     normals: [
                         this.getSphereVertexNormal(vertices[index1]),
                         this.getSphereVertexNormal(vertices[index2]),
@@ -74,7 +74,7 @@ export class SphereMeshGenerator {
             const index2 = i;
             let index3 = i + 1;
             let index4 = i - horizontalSectionsNumber + 1;
-            
+
             if (i % horizontalSectionsNumber == 0) {
                 index3 -= horizontalSectionsNumber;
                 index4 -= horizontalSectionsNumber;
@@ -82,8 +82,8 @@ export class SphereMeshGenerator {
 
             triangles.push(
                 {
-                    color: ColorUtils.getRandomColorName(),
                     indices: [index1, index2, index3],
+                    colors: colors,
                     normals: [
                         this.getSphereVertexNormal(vertices[index1]),
                         this.getSphereVertexNormal(vertices[index2]),
@@ -94,8 +94,8 @@ export class SphereMeshGenerator {
 
             triangles.push(
                 {
-                    color: ColorUtils.getRandomColorName(),
                     indices: [index4, index1, index3],
+                    colors: colors,
                     normals: [
                         this.getSphereVertexNormal(vertices[index4]),
                         this.getSphereVertexNormal(vertices[index1]),
@@ -112,8 +112,8 @@ export class SphereMeshGenerator {
 
             triangles.push(
                 {
-                    color: ColorUtils.getRandomColorName(),
                     indices: [index1, index2, index3],
+                    colors: colors,
                     normals: [
                         this.getSphereVertexNormal(vertices[index1]),
                         this.getSphereVertexNormal(vertices[index2]),
