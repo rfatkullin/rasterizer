@@ -1,3 +1,5 @@
+import { Point3f } from "../model/geometry/point3f";
+
 export class VectorMath {
     public static mult(matrix: number[][], vector: number[]): number[] {
         const matrixRowNumber = matrix.length;
@@ -20,10 +22,10 @@ export class VectorMath {
         return result;
     }
 
-    public static interpolateNormals(a: number[], b: number[], t: number): number[] {
-        const vector: number[] = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    public static interpolateNormals(a: Point3f, b: Point3f, t: number): Point3f {
+        const vector: Point3f = new Point3f(b.x - a.x, b.y - a.y, b.z - a.z);
 
-        return [a[0] + t * vector[0], a[1] + t * vector[1], a[2] + t * vector[2]];
+        return new Point3f(a.x + t * vector.x, a.y + t * vector.y, a.z + t * vector.z).getNormalized();
     }
 
     public static transpose(m: number[][]): number[][] {

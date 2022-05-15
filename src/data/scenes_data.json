@@ -118,9 +118,9 @@
                         3
                     ],
                     "colors": [
-                        "cyan",
-                        "blue",
-                        "red"
+                        "yellow",
+                        "yellow",
+                        "yellow"
                     ],
                     "normals": [
                         [
@@ -147,9 +147,9 @@
                         7
                     ],
                     "colors": [
-                        "red",
-                        "green",
-                        "black"
+                        "yellow",
+                        "yellow",
+                        "yellow"
                     ],
                     "normals": [
                         [
@@ -562,9 +562,9 @@
                 "z": 0
             },
             "translate": {
-                "x": 14,
+                "x": 0,
                 "y": 0,
-                "z": 50
+                "z": 60
             }
         }
     ],
@@ -577,26 +577,26 @@
         "frustum": {
             "fovInDegrees": 90,
             "near": 10,
-            "far": 100
+            "far": 200
         }
     },
     "lighting": {
         "ambient": {
-            "r": 0.1,
-            "g": 0.1,
-            "b": 0.1
+            "r": 0.2,
+            "g": 0.2,
+            "b": 0.2
         },
         "directs": [
             {
                 "direction": {
                     "x": 0,
-                    "y": 0,
+                    "y": -1,
                     "z": -1
                 },
                 "color": {
-                    "r": 0.7,
-                    "g": 0.7,
-                    "b": 0.7
+                    "r": 0.5,
+                    "g": 0.5,
+                    "b": 0.5
                 }
             }
         ]

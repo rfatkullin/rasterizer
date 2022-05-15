@@ -23,6 +23,10 @@ export class Point3f {
         return this._lenghtSquared;
     }
 
+    public getNormalized(): Point3f {
+        return new Point3f(this.x / this.length, this.y / this.length, this.z / this.length);
+    }
+
     public sub(other: Point3f): Point3f {
         return new Point3f(this.x - other.x, this.y - other.y, this.z - other.z);
     }

@@ -11,6 +11,7 @@ import { FigureInstance } from "./model/scene/figure_instance";
 import { SceneDescription } from "./model/scene/scene_description";
 import { TriangleDescription } from "./model/scene/triangle_description";
 import { ViewFrustum } from "./model/scene/view_frustum";
+import { TransformedTriangleDescription } from "./model/transformed_triangle_description";
 import { Rasterizer } from "./rasterizer";
 import { TransformFactory } from "./transforms/transforms_factory";
 
@@ -41,45 +42,45 @@ export class SceneRenderer implements IRenderer {
             const transformedVertices = this.applyTransforms(figureForInstance.vertices, modelViewMatrix);
 
             const normalsModelViewMatrix = VectorMath.transpose(VectorMath.inverse3by3Matrix(VectorMath.getSubMatrix(modelViewMatrix, 3, 3)));
-            let triangles: TriangleDescription[] = this.applyNormalsTransforms(normalsModelViewMatrix, figureForInstance.triangles);
+            let transformedTriangles: TransformedTriangleDescription[] = this.applyNormalsTransforms(normalsModelViewMatrix, figureForInstance.triangles);
 
-            triangles = this._clipper.clip(transformedVertices, triangles);
-            if (triangles.length === 0) {
+            transformedTriangles = this._clipper.clip(transformedVertices, transformedTriangles);
+            if (transformedTriangles.length === 0) {
                 continue;
             }
 
             const projectedVertices: Point3f[] = this.applyProjections(transformedVertices);
-            this.renderTriangles(projectedVertices, transformedVertices, triangles);
+            this.renderTriangles(projectedVertices, transformedVertices, transformedTriangles);
         }
 
         this._rasterizer.flush();
     }
 
-    private renderTriangles(projectedVertices: Point3f[], onlyTransformedVertices: Point3f[], triangles: TriangleDescription[]): void {
+    private renderTriangles(projectedVertices: Point3f[], onlyTransformedVertices: Point3f[], triangles: TransformedTriangleDescription[]): void {
         for (const triangle of triangles) {
             if (!RendererSettings.OnlyWired) {
                 this.drawFilledTriangle(projectedVertices, onlyTransformedVertices, triangle);
             }
 
-            //this.drawWiredTriangle(projectedVertices, triangle);
+            this.drawWiredTriangle(projectedVertices, onlyTransformedVertices, triangle);
         }
     }
 
-    private drawWiredTriangle(vertices: Point3f[], triangle: TriangleDescription): void {
+    private drawWiredTriangle(vertices: Point3f[], onlyTransformedVertices: Point3f[], triangle: TransformedTriangleDescription): void {
         const p0: Point3f = vertices[triangle.indices[0]];
         const p1: Point3f = vertices[triangle.indices[1]];
         const p2: Point3f = vertices[triangle.indices[2]];
 
-        const color0: Color = this.getVertexColor(vertices[0], triangle.normals[0], triangle.colors[0]);
-        const color1: Color = this.getVertexColor(vertices[1], triangle.normals[1], triangle.colors[1]);
-        const color2: Color = this.getVertexColor(vertices[2], triangle.normals[2], triangle.colors[2]);
+        const color0: Color = this.getVertexColor(onlyTransformedVertices[triangle.indices[0]], triangle.normals[0], triangle.colors[0]);
+        const color1: Color = this.getVertexColor(onlyTransformedVertices[triangle.indices[1]], triangle.normals[1], triangle.colors[1]);
+        const color2: Color = this.getVertexColor(onlyTransformedVertices[triangle.indices[2]], triangle.normals[2], triangle.colors[2]);
 
         this._rasterizer.drawLine(p0, p1, color0, color1);
         this._rasterizer.drawLine(p1, p2, color1, color2);
         this._rasterizer.drawLine(p2, p0, color2, color0);
     }
 
-    private drawFilledTriangle(vertices: Point3f[], onlyTransformedVertices: Point3f[], triangle: TriangleDescription): void {
+    private drawFilledTriangle(vertices: Point3f[], onlyTransformedVertices: Point3f[], triangle: TransformedTriangleDescription): void {
         const p0: Point3f = vertices[triangle.indices[0]];
         const p1: Point3f = vertices[triangle.indices[1]];
         const p2: Point3f = vertices[triangle.indices[2]];
@@ -91,8 +92,8 @@ export class SceneRenderer implements IRenderer {
         this._rasterizer.drawFilledTriangle(p0, p1, p2, color0, color1, color2);
     }
 
-    private getVertexColor(vertex: Point3f, normal: number[], color: Color): Color {
-        return this._lightCalculator.calculateColor(this.revertProjection(vertex), new Point3f(normal[0], normal[1], normal[2]), color);
+    private getVertexColor(vertex: Point3f, normal: Point3f, color: Color): Color {
+        return this._lightCalculator.calculateColor(vertex, normal, color);
     }
 
     private getModelViewMatrix(instance: FigureInstance): number[][] {
@@ -103,13 +104,18 @@ export class SceneRenderer implements IRenderer {
         return VectorMath.multMatrix(translate, VectorMath.multMatrix(rotation, scale));
     }
 
-    private applyNormalsTransforms(normalsModelViewMatrix: number[][], triangles: TriangleDescription[]): TriangleDescription[] {
-        const result: TriangleDescription[] = [];
+    private applyNormalsTransforms(normalsModelViewMatrix: number[][], triangles: TriangleDescription[]): TransformedTriangleDescription[] {
+        const result: TransformedTriangleDescription[] = [];
 
         for (let triangle of triangles) {
-            const transformedTrianleNormals = triangle.normals.map(normal => VectorMath.mult(normalsModelViewMatrix, normal));
+            const transformedTrianleNormals = triangle.normals
+                .map(normal => {
+                    const transformed = VectorMath.mult(normalsModelViewMatrix, normal);
+                    const normalized = new Point3f(transformed[0], transformed[1], transformed[2]).getNormalized();
+                    return normalized;
+                });
 
-            result.push(new TriangleDescription(triangle.indices, triangle.colors, transformedTrianleNormals));
+            result.push(new TransformedTriangleDescription(triangle.indices, triangle.colors, transformedTrianleNormals));
         }
 
         return result;
@@ -130,14 +136,6 @@ export class SceneRenderer implements IRenderer {
         const afterCanvasProjection: Point3f[] = this.applyCanvasProjection(afterProjection);
 
         return this.applyCanvasCenteringAndYAxisInverse(afterCanvasProjection);
-    }
-
-    private revertProjection(vertex: Point3f): Point3f {
-        return new Point3f(
-            vertex.x / (this._scene.camera.frustum.near * vertex.z),
-            vertex.y / (this._scene.camera.frustum.near * vertex.z),
-            1 / vertex.z);
-
     }
 
     private applyProjection(vertices: Point3f[]): Point3f[] {
